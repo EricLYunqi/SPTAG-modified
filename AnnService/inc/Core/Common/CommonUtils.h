@@ -11,6 +11,7 @@
 #include <exception>
 #include <algorithm>
 
+#include <atomic>
 #include <thread>
 #include <time.h>
 #include <string.h>
@@ -30,24 +31,14 @@ namespace SPTAG
                 return low + (SizeType)(float(high - low)*(std::rand() / (RAND_MAX + 1.0)));
             }
 
-            static inline float atomic_float_add(volatile float* ptr, const float operand)
+            // CAS loop, since std::atomic<float>::fetch_add is C++20.
+            static inline float atomic_float_add(std::atomic<float>& value, const float operand)
             {
-                union {
-                    volatile long iOld;
-                    float fOld;
-                };
-                union {
-                    long iNew;
-                    float fNew;
-                };
-
-                while (true) {
-                    iOld = *(volatile long *)ptr;
-                    fNew = fOld + operand;
-                    if (InterlockedCompareExchange((long *)ptr, iNew, iOld) == iOld) {
-                        return fNew;
-                    }
+                float oldValue = value.load(std::memory_order_relaxed);
+                while (!value.compare_exchange_weak(oldValue, oldValue + operand,
+                    std::memory_order_relaxed, std::memory_order_relaxed)) {
                 }
+                return oldValue + operand;
             }
 
             template<typename T>

@@ -174,7 +174,7 @@ inline float MultipleClustersAssign(const COMMON::Dataset<T> &data, std::vector<
                                     COMMON::Dataset<LabelType> &label, bool updateCenters, float lambda,
                                     std::vector<float> &weights, float wlambda)
 {
-    float currDist = 0;
+    std::atomic<float> currDist{ 0.0f };
     SizeType subsize = (last - first - 1) / args._TH + 1;
 
     std::uint64_t avgCount = 0;
@@ -248,7 +248,7 @@ inline float MultipleClustersAssign(const COMMON::Dataset<T> &data, std::vector<
                 }
             }
         }
-        SPTAG::COMMON::Utils::atomic_float_add(&currDist, idist);
+        SPTAG::COMMON::Utils::atomic_float_add(currDist, idist);
     };
 
     std::vector<std::thread> threads;
@@ -309,7 +309,7 @@ inline float MultipleClustersAssign(const COMMON::Dataset<T> &data, std::vector<
             }
         }
     }
-    return currDist;
+    return currDist.load(std::memory_order_relaxed);
 }
 
 template <typename T>
@@ -318,7 +318,7 @@ inline float HardMultipleClustersAssign(const COMMON::Dataset<T> &data, std::vec
                                         COMMON::Dataset<LabelType> &label, SizeType *mylimit,
                                         std::vector<float> &weights, const int clusternum, const bool fill)
 {
-    float currDist = 0;
+    std::atomic<float> currDist{ 0.0f };
     SizeType subsize = (last - first - 1) / args._TH + 1;
 
     SPTAG::Edge *items = new SPTAG::Edge[last - first];
@@ -424,7 +424,7 @@ inline float HardMultipleClustersAssign(const COMMON::Dataset<T> &data, std::vec
                 }
             }
         }
-        SPTAG::COMMON::Utils::atomic_float_add(&currDist, idist);
+        SPTAG::COMMON::Utils::atomic_float_add(currDist, idist);
     };
 
     {
@@ -450,7 +450,7 @@ inline float HardMultipleClustersAssign(const COMMON::Dataset<T> &data, std::vec
             args.weightedCounts[k] += args.newWeightedCounts[i * args._K + k];
         }
     }
-    return currDist;
+    return currDist.load(std::memory_order_relaxed);
 }
 
 template <typename T> void Process(MPI_Datatype type)

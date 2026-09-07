@@ -221,7 +221,7 @@ namespace SPTAG
             std::vector<SizeType>& indices,
             const SizeType first, const SizeType last, KmeansArgs<T>& args, 
             const bool updateCenters, float lambda) {
-            float currDist = 0;
+            std::atomic<float> currDist{ 0.0f };
             SizeType subsize = (last - first - 1) / args._TH + 1;
 
             std::vector<std::thread> mythreads;
@@ -291,7 +291,7 @@ namespace SPTAG
                     }
                     if (args.m_pQuantizer)
                         ALIGN_FREE(reconstructVector);
-                    COMMON::Utils::atomic_float_add(&currDist, idist);
+                    COMMON::Utils::atomic_float_add(currDist, idist);
                 });
             }
             for (auto &t : mythreads)
@@ -329,7 +329,7 @@ namespace SPTAG
                     }
                 }
             }
-            return currDist;
+            return currDist.load(std::memory_order_relaxed);
         }
 
 #endif
