@@ -104,6 +104,13 @@ if (NOT LIBRARYONLY)
     add_executable (indexbuilder ${BUILDER_FILES})
     target_link_libraries(indexbuilder ${Boost_LIBRARIES} SPTAGLibStatic)
 
+    # Ranged slice inserter. Links the SPANN/SPFresh deps directly since it drives
+    # ExtraDynamicSearcher, unlike the other AnnService tools.
+    file(GLOB SHARDINS_FILES ${AnnService}/src/ShardInserter/*.cpp)
+    add_executable (shardinserter ${SHARDINS_FILES})
+    target_link_libraries(shardinserter ${Boost_LIBRARIES} SPTAGLibStatic
+        ${RocksDB_LIBRARIES} ${uring_LIBRARIES} ${TBB_LIBRARIES} ${SPDK_LIBRARIES})
+
     file(GLOB SEARCHER_FILES ${AnnService}/src/IndexSearcher/*.cpp)
     add_executable (indexsearcher ${SEARCHER_FILES})
     target_link_libraries(indexsearcher ${Boost_LIBRARIES} SPTAGLibStatic)
@@ -113,7 +120,7 @@ if (NOT LIBRARYONLY)
     add_executable (quantizer ${QUANTIZER_FILES} ${QUANTIZER_HDR_FILES})
     target_link_libraries(quantizer ${Boost_LIBRARIES} SPTAGLibStatic)
 
-    install(TARGETS server client aggregator indexbuilder indexsearcher quantizer
+    install(TARGETS server client aggregator indexbuilder indexsearcher quantizer shardinserter
       RUNTIME DESTINATION bin
       ARCHIVE DESTINATION lib
       LIBRARY DESTINATION lib)
